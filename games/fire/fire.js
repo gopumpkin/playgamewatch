@@ -4,6 +4,7 @@ import { getActionFromKey, createKeyboardController } from "../../shared/input.j
 import { attachResponsiveLayout } from "../../shared/layout.js";
 import { createStorageNamespace } from "../../shared/storage.js";
 import {
+  FIRE_PATHS,
   FIRE_RULESET,
   FIRE_PLAYER_POSITIONS,
   createInitialFireState,
@@ -26,6 +27,8 @@ const pauseButton = document.querySelector("#pause-button");
 const skinButton = document.querySelector("#skin-button");
 const soundButton = document.querySelector("#sound-button");
 const touchControls = document.querySelector("#touch-controls");
+const moveLeftButton = document.querySelector("#move-left-button");
+const moveRightButton = document.querySelector("#move-right-button");
 
 const storage = createStorageNamespace("game-n-watch");
 const audio = createAudioEngine();
@@ -161,6 +164,32 @@ function drawStickFigure(x, y) {
   context.stroke();
 }
 
+function getRenderedJumperPoint(jumper) {
+  const currentSegment = getJumperSegment(jumper);
+  if (!currentSegment) {
+    return currentSegment;
+  }
+
+  if (state.status !== "running" || (state.beatPhase !== 1 && state.beatPhase !== 2)) {
+    return currentSegment;
+  }
+
+  if (jumper.beat !== state.beatPhase) {
+    return currentSegment;
+  }
+
+  const nextSegment = FIRE_PATHS[jumper.pathIndex][jumper.segmentIndex + 1];
+  if (!nextSegment) {
+    return currentSegment;
+  }
+
+  const progress = Math.min(1, tickAccumulator / getTickDurationMs(state));
+  return {
+    x: currentSegment.x + (nextSegment.x - currentSegment.x) * progress,
+    y: currentSegment.y + (nextSegment.y - currentSegment.y) * progress,
+  };
+}
+
 function drawBackground() {
   const palette = skinMode === "silver"
     ? {
@@ -237,7 +266,7 @@ function drawJumpers() {
   context.fillStyle = "#243022";
   context.strokeStyle = "#243022";
   for (const jumper of state.jumpers) {
-    const point = getJumperSegment(jumper);
+    const point = getRenderedJumperPoint(jumper);
     drawStickFigure(point.x, point.y);
   }
 }
@@ -312,6 +341,8 @@ startBButton.addEventListener("click", () => startGame("B"));
 pauseButton.addEventListener("click", () => dispatch({ type: "PAUSE_TOGGLE" }));
 skinButton.addEventListener("click", toggleSkin);
 soundButton.addEventListener("click", toggleSound);
+moveLeftButton.addEventListener("click", () => handleAction("move-left"));
+moveRightButton.addEventListener("click", () => handleAction("move-right"));
 
 mountTouchControls(touchControls, {
   onLeft: () => handleAction("move-left"),

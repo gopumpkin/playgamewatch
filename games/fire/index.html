@@ -9,21 +9,21 @@
     <title>Fire | Game &amp; Watch Collection</title>
     <meta
       name="description"
-      content="Play a mobile-friendly Fire recreation with Silver gameplay rules, keyboard controls, touch controls, and offline support."
+      content="Play a mobile-friendly Fire recreation with Wide Screen gameplay rules, keyboard controls, touch controls, and offline support."
     />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles/site.css" />
+    <link rel="manifest" href="../../manifest.webmanifest" />
+    <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../styles/site.css" />
     <link rel="stylesheet" href="./fire.css" />
   </head>
   <body>
     <header class="site-shell page-header">
       <div>
-        <a class="page-header__link" href="/">&larr; Back to collection</a>
+        <a class="page-header__link" href="../../">&larr; Back to collection</a>
         <p class="eyebrow">Game 01</p>
         <h1>Fire</h1>
       </div>
-        <p class="muted">Wide Screen gameplay rules, responsive layout, keyboard + touch controls.</p>
+      <p class="muted">Wide Screen gameplay rules, responsive layout, keyboard + touch controls.</p>
     </header>
 
     <main class="site-shell stack">
@@ -47,26 +47,55 @@
           </div>
         </div>
 
-        <div class="fire-cabinet" id="cabinet">
-          <canvas
-            class="fire-screen"
-            id="fire-screen"
-            width="960"
-            height="600"
-            aria-label="Fire game display"
-          ></canvas>
+        <div class="fire-device" id="cabinet">
+          <aside class="fire-device__side fire-device__side--left">
+            <div class="fire-device__brand">
+              <span>PIXEL</span>
+              <span>WATCH</span>
+              <span>CLASSIC</span>
+            </div>
+            <button type="button" id="move-left-button" class="fire-device__big-button" aria-label="Move left"></button>
+            <div class="fire-device__direction fire-device__direction--left">LEFT</div>
+          </aside>
+
+          <section class="fire-device__center">
+            <div class="fire-device__title">FIRE</div>
+            <div class="fire-device__screen-frame">
+              <div class="fire-device__screen-accent">
+                <canvas
+                  class="fire-screen"
+                  id="fire-screen"
+                  width="960"
+                  height="600"
+                  aria-label="Fire game display"
+                ></canvas>
+              </div>
+            </div>
+            <div class="fire-device__footer">WIDE SCREEN</div>
+          </section>
+
+          <aside class="fire-device__side fire-device__side--right">
+            <div class="fire-device__button-stack">
+              <button type="button" id="start-a" class="fire-device__pill-button">Game A</button>
+              <button type="button" id="start-b" class="fire-device__pill-button">Game B</button>
+              <button type="button" id="sound-button" class="fire-device__pill-button">Sound: On</button>
+            </div>
+            <div class="fire-device__indicator-stack">
+              <span>Alarm</span>
+              <span>ACL</span>
+            </div>
+            <button type="button" id="move-right-button" class="fire-device__big-button" aria-label="Move right"></button>
+            <div class="fire-device__direction fire-device__direction--right">RIGHT</div>
+          </aside>
         </div>
 
-        <div class="info-bar">
+        <div class="info-bar fire-device__utility">
           <p class="muted" id="status-message">
             Press <strong>1</strong> for Game A, <strong>2</strong> for Game B, use arrow keys or A/D.
           </p>
           <div class="action-row">
-            <button type="button" id="start-a" class="button--primary">Game A</button>
-            <button type="button" id="start-b">Game B</button>
             <button type="button" id="pause-button">Pause</button>
             <button type="button" id="skin-button">Skin: Silver</button>
-            <button type="button" id="sound-button">Sound: On</button>
           </div>
         </div>
 
