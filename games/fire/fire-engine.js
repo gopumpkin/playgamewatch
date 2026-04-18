@@ -51,18 +51,22 @@ function clampPosition(position) {
 
 function getMaxActiveJumpers(mode, score) {
   if (mode === "B") {
-    return score >= 40 ? 4 : 3;
+    if (score >= 60) return 5;
+    if (score >= 30) return 4;
+    return 3;
   }
 
-  return score >= 60 ? 3 : 2;
+  if (score >= 80) return 4;
+  if (score >= 40) return 3;
+  return 2;
 }
 
 function getSpawnIntervalCycles(mode, score) {
   if (mode === "B") {
-    return Math.max(1, 5 - Math.floor(score / 20));
+    return Math.max(1, 4 - Math.floor(score / 15));
   }
 
-  return Math.max(2, 6 - Math.floor(score / 30));
+  return Math.max(1, 5 - Math.floor(score / 20));
 }
 
 function maybeResetMisses(score, misses, events) {
@@ -76,7 +80,8 @@ function maybeResetMisses(score, misses, events) {
 
 function getSourceIndexForSpawn(state) {
   if (state.mode === "A") {
-    return 0;
+    // Randomly pick high or low window so jumpers come from different heights
+    return Math.random() < 0.5 ? 0 : 1;
   }
 
   return state.nextSourceIndex;
