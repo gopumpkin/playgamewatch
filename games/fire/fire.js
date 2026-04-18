@@ -469,16 +469,26 @@ function getPalette() {
   return LCD_PALETTES[skinMode] ?? LCD_PALETTES.wide;
 }
 
-function drawSegmentPose(x, y, poseName, color, scale = 1) {
+function drawSegmentPose(x, y, poseName, color, scale = 1, rotation = 0) {
   const pixels = _POSE_SPRITE[poseName];
   if (pixels) {
-    // Pixel-art path: snap anchor to grid, then draw each coloured pixel block
     const ax = Math.round(x / SPRITE_PX) * SPRITE_PX;
     const ay = Math.round(y / SPRITE_PX) * SPRITE_PX;
     const sz = Math.max(1, Math.round(SPRITE_PX * scale));
-    for (const [dx, dy, col] of pixels) {
-      context.fillStyle = col;
-      context.fillRect(ax + Math.round(dx * scale), ay + Math.round(dy * scale), sz, sz);
+    if (rotation !== 0) {
+      context.save();
+      context.translate(ax, ay);
+      context.rotate(rotation);
+      for (const [dx, dy, col] of pixels) {
+        context.fillStyle = col;
+        context.fillRect(Math.round(dx * scale), Math.round(dy * scale), sz, sz);
+      }
+      context.restore();
+    } else {
+      for (const [dx, dy, col] of pixels) {
+        context.fillStyle = col;
+        context.fillRect(ax + Math.round(dx * scale), ay + Math.round(dy * scale), sz, sz);
+      }
     }
     return;
   }
@@ -788,17 +798,24 @@ function getRenderedJumperPoint(jumper) {
   const x = currentSegment.x + (nextSegment.x - currentSegment.x) * t;
   const y = currentSegment.y + (nextSegment.y - currentSegment.y) * t;
 
-  // Add perpendicular arc: jump/bounce transitions get a natural parabolic lift
-  // sin(t*PI) peaks at 0.5; amplitude depends on transition direction
+  // Dramatic parabolic arc — exaggerated cartoon-style height
   const dy = nextSegment.y - currentSegment.y;
   const dx = Math.abs(nextSegment.x - currentSegment.x);
-  const isRising = dy < -30;      // significantly upward = bounce arc
-  const isFalling = dy > 30;      // significantly downward = fall arc
+  const isRising = dy < -20;
+  const isFalling = dy > 20;
   let arcY = 0;
-  if (isRising) arcY = -Math.min(dx * 0.28, 50) * Math.sin(rawProgress * Math.PI);
-  else if (isFalling) arcY = Math.min(dx * 0.12, 20) * Math.sin(rawProgress * Math.PI);
+  if (isRising)  arcY = -Math.min(dx * 0.55, 90) * Math.sin(rawProgress * Math.PI);
+  else if (isFalling) arcY = Math.min(dx * 0.22, 36) * Math.sin(rawProgress * Math.PI);
 
-  return { x, y: y + arcY, rawProgress };
+  // Rotation: spin during flight for drama
+  const horizDir = nextSegment.x - currentSegment.x;
+  let rotation = 0;
+  if (isRising || isFalling) {
+    const maxSpin = isRising ? 0.55 : 0.28;
+    rotation = (horizDir >= 0 ? 1 : -1) * maxSpin * Math.sin(rawProgress * Math.PI);
+  }
+
+  return { x, y: y + arcY, rawProgress, rotation };
 }
 
 function drawBackground() {
@@ -845,10 +862,12 @@ function drawJumpers() {
     const point = getRenderedJumperPoint(jumper);
     if (!point) continue;
     const segment = getJumperSegment(jumper);
-    // Squash & stretch: slightly taller at arc peak, squashed on landing
     const rawP = point.rawProgress ?? 0;
-    const stretch = 1 + 0.14 * Math.sin(rawP * Math.PI);
-    drawSegmentPose(point.x, point.y, segment.pose, palette.segment, stretch);
+    // Dramatic squash & stretch: tall at arc peak, squash on landing/launch
+    const peakFactor = Math.sin(rawP * Math.PI);
+    const stretch = 1 + 0.28 * peakFactor;           // up to 28% taller at peak
+    const rotation = point.rotation ?? 0;
+    drawSegmentPose(point.x, point.y, segment.pose, palette.segment, stretch, rotation);
   }
 }
 
