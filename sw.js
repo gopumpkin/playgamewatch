@@ -1,4 +1,4 @@
-const CACHE_NAME = "game-watch-v1";
+const CACHE_NAME = "game-watch-v2";
 const ASSETS = [
   "/",
   "/index.html",
@@ -40,16 +40,33 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-      return fetch(event.request).then((response) => {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        return response;
-      });
-    }),
-  );
+  const url = new URL(event.request.url);
+  const isScript = url.pathname.endsWith(".js") || url.pathname.endsWith(".html");
+
+  if (isScript) {
+    // Network-first for JS/HTML so updates are always picked up
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+  } else {
+    // Cache-first for assets (images, audio, fonts)
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(event.request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        });
+      }),
+    );
+  }
 });
