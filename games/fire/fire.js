@@ -711,7 +711,6 @@ function getRenderedJumperPoint(jumper) {
 
   return { x, y: y + arcY, rawProgress };
 }
-}
 
 function drawBackground() {
   const palette = getPalette();
