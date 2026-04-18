@@ -717,11 +717,6 @@ function drawBackground() {
 
   drawBuilding(palette);
   drawAmbulance(palette);
-  drawFigureGhosts(palette.ghost);
-
-  for (const point of FIRE_PLAYER_POSITIONS) {
-    drawFiremanNet(point, palette.ghost);
-  }
 }
 
 function drawTrampoline() {
@@ -877,8 +872,8 @@ function drawFlashEffects() {
 
 function render() {
   drawBackground();
-  drawTrampoline();
   drawJumpers();
+  drawTrampoline();
   drawFlashEffects();
   drawHud();
   drawOverlay();

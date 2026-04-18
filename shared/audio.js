@@ -11,6 +11,40 @@ export function createAudioEngine() {
   let ctx = null;
   let masterGain = null;
 
+  // Pre-rendered AudioBuffers — generated offline, no gesture needed.
+  // Keyed by cue name; populated by prerenderAll() on module init.
+  const cueBuffers = {};
+  let buffersReady = false;
+
+  async function prerenderAll() {
+    const sampleRate = 44100;
+    for (const [name, cue] of Object.entries(CUES)) {
+      try {
+        const tail = 0.05;
+        const length = Math.ceil(sampleRate * (cue.duration + tail));
+        const offline = new OfflineAudioContext(1, length, sampleRate);
+        const osc = offline.createOscillator();
+        const gain = offline.createGain();
+        osc.type = cue.type;
+        osc.frequency.value = cue.frequency;
+        gain.gain.setValueAtTime(0.001, 0);
+        gain.gain.exponentialRampToValueAtTime(1, 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, cue.duration);
+        osc.connect(gain);
+        gain.connect(offline.destination);
+        osc.start(0);
+        osc.stop(cue.duration + tail);
+        cueBuffers[name] = await offline.startRendering();
+      } catch (_) {
+        // OfflineAudioContext not available — fall back to oscillator
+      }
+    }
+    buffersReady = Object.keys(cueBuffers).length > 0;
+  }
+
+  // Kick off pre-rendering immediately (no gesture required for OfflineAudioContext)
+  prerenderAll();
+
   function getOrCreateContext() {
     if (ctx) return ctx;
     const Ctor = window.AudioContext ?? window.webkitAudioContext;
@@ -24,46 +58,50 @@ export function createAudioEngine() {
 
   return {
     /**
-     * Call this synchronously inside every user-gesture handler.
-     * Creates the AudioContext, plays a silent buffer (iOS unlock trick),
-     * and calls ctx.resume() — all within the same gesture event so iOS
-     * recognises it as a trusted interaction.
+     * Call synchronously inside every user-gesture handler.
+     * Creates the AudioContext (iOS requires this path), resumes it,
+     * and plays a silent buffer — the canonical iOS WebAudio unlock trick.
+     *
+     * On iOS the mute/ringer switch will still silence ALL audio — that is
+     * an iOS platform restriction with no web workaround.
      */
     resume() {
       const c = getOrCreateContext();
       if (!c) return;
 
-      // ctx.resume() must be called first — iOS requires it before any audio
-      // node activity can unlock the context.
-      if (c.state === "suspended") {
-        c.resume().catch(() => {});
-      }
+      // Resume regardless of current state — handles "suspended" and "interrupted"
+      c.resume().catch(() => {});
 
-      // Silent 1-sample buffer: the canonical iOS WebAudio unlock trick.
-      // Playing any sound (even silence) within a user gesture marks the
-      // context as "user-activated" on WebKit.
+      // Play a silent buffer to mark the context as user-activated on WebKit
       try {
         const buf = c.createBuffer(1, 1, c.sampleRate);
         const src = c.createBufferSource();
         src.buffer = buf;
         src.connect(c.destination);
         src.start(0);
-      } catch (_) {
-        // best effort
-      }
+      } catch (_) {}
     },
 
     playCue(name) {
-      const cue = CUES[name];
-      // ctx must exist (i.e., resume() must have been called from a gesture).
-      if (!cue || !ctx || !masterGain) return;
+      if (!ctx || !masterGain) return;
 
-      // KEY: do NOT gate on ctx.state === "running".
-      // ctx.resume() resolves asynchronously, so state may still read
-      // "suspended" for a few ms after the gesture. Web Audio will queue
-      // scheduled sounds while suspended and play them once the context
-      // actually starts running. This is standard spec behaviour and works
-      // on both iOS Safari and Chrome/Android.
+      // Prefer pre-rendered AudioBuffer (more reliable on iOS than real-time oscillator)
+      if (buffersReady && cueBuffers[name]) {
+        try {
+          const src = ctx.createBufferSource();
+          src.buffer = cueBuffers[name];
+          const gain = ctx.createGain();
+          gain.gain.value = 1;
+          src.connect(gain);
+          gain.connect(masterGain);
+          src.start();
+        } catch (_) {}
+        return;
+      }
+
+      // Oscillator fallback (for browsers without OfflineAudioContext)
+      const cue = CUES[name];
+      if (!cue) return;
       try {
         const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -76,9 +114,7 @@ export function createAudioEngine() {
         gain.connect(masterGain);
         oscillator.start();
         oscillator.stop(ctx.currentTime + cue.duration);
-      } catch (_) {
-        // Ignore — context may be in a transitional state
-      }
+      } catch (_) {}
     },
   };
 }
