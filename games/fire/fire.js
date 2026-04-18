@@ -807,15 +807,18 @@ function getRenderedJumperPoint(jumper) {
   if (isRising)  arcY = -Math.min(dx * 0.55, 90) * Math.sin(rawProgress * Math.PI);
   else if (isFalling) arcY = Math.min(dx * 0.22, 36) * Math.sin(rawProgress * Math.PI);
 
-  // Rotation: continuous tumble through the air (progressive spin, not sway)
+  // Rotation: stepped 45° increments — retro pixel-art tumble
+  const STEP = Math.PI / 4; // 45°
   const horizDir = nextSegment.x - currentSegment.x;
   let rotation = 0;
   if (isRising) {
-    // Rising: tumble a full half-turn (0 → π)
-    rotation = (horizDir >= 0 ? 1 : -1) * rawProgress * Math.PI;
+    // Rising: step from 0° up to 90° (2 steps)
+    const raw = rawProgress * (Math.PI / 2);
+    rotation = (horizDir >= 0 ? 1 : -1) * Math.round(raw / STEP) * STEP;
   } else if (isFalling) {
-    // Falling: continue tumbling another quarter-turn (0 → π/2)
-    rotation = (horizDir >= 0 ? 1 : -1) * (Math.PI + rawProgress * (Math.PI / 2));
+    // Falling: step from 90° back down to 0° (2 steps)
+    const raw = (1 - rawProgress) * (Math.PI / 2);
+    rotation = (horizDir >= 0 ? 1 : -1) * Math.round(raw / STEP) * STEP;
   }
 
   return { x, y: y + arcY, rawProgress, rotation };
