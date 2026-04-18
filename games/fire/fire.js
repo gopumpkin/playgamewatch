@@ -807,12 +807,15 @@ function getRenderedJumperPoint(jumper) {
   if (isRising)  arcY = -Math.min(dx * 0.55, 90) * Math.sin(rawProgress * Math.PI);
   else if (isFalling) arcY = Math.min(dx * 0.22, 36) * Math.sin(rawProgress * Math.PI);
 
-  // Rotation: spin during flight for drama
+  // Rotation: continuous tumble through the air (progressive spin, not sway)
   const horizDir = nextSegment.x - currentSegment.x;
   let rotation = 0;
-  if (isRising || isFalling) {
-    const maxSpin = isRising ? 0.55 : 0.28;
-    rotation = (horizDir >= 0 ? 1 : -1) * maxSpin * Math.sin(rawProgress * Math.PI);
+  if (isRising) {
+    // Rising: tumble a full half-turn (0 → π)
+    rotation = (horizDir >= 0 ? 1 : -1) * rawProgress * Math.PI;
+  } else if (isFalling) {
+    // Falling: continue tumbling another quarter-turn (0 → π/2)
+    rotation = (horizDir >= 0 ? 1 : -1) * (Math.PI + rawProgress * (Math.PI / 2));
   }
 
   return { x, y: y + arcY, rawProgress, rotation };
