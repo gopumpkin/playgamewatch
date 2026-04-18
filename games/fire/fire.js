@@ -376,23 +376,32 @@ function drawSegmentPose(x, y, poseName, color, scale = 1) {
     return;
   }
 
+  // Snap anchor to 4-px pixel grid for chunky LCD look
+  const PX = 4;
+  const ax = Math.round(x / PX) * PX;
+  const ay = Math.round(y / PX) * PX;
+
   context.save();
-  context.translate(x, y);
+  context.translate(ax, ay);
   context.scale(scale, scale);
-  context.strokeStyle = color;
   context.fillStyle = color;
-  context.lineWidth = 4;
-  context.lineCap = "round";
-  context.lineJoin = "round";
+  context.strokeStyle = color;
 
-  context.beginPath();
-  context.arc(pose.head[0], pose.head[1], pose.head[2], 0, Math.PI * 2);
-  context.fill();
+  // Head: chunky filled square (retro Game Boy LCD pixel block)
+  const [hx, hy, hr] = pose.head;
+  const hsx = Math.round((hx - hr) / PX) * PX;
+  const hsy = Math.round((hy - hr) / PX) * PX;
+  const hsz = Math.round((hr * 2) / PX) * PX;
+  context.fillRect(hsx, hsy, hsz, hsz);
 
+  // Body lines: thick, square-capped, coordinates snapped to grid
+  context.lineWidth = 5;
+  context.lineCap = "square";
+  context.lineJoin = "miter";
   context.beginPath();
   for (const line of pose.lines) {
-    context.moveTo(line[0], line[1]);
-    context.lineTo(line[2], line[3]);
+    context.moveTo(Math.round(line[0] / PX) * PX, Math.round(line[1] / PX) * PX);
+    context.lineTo(Math.round(line[2] / PX) * PX, Math.round(line[3] / PX) * PX);
   }
   context.stroke();
   context.restore();
@@ -590,8 +599,10 @@ function drawFiremanNet(point, color, active = false) {
   const HALF_W = 58;
   const leftX = cx - HALF_W;
   const rightX = cx + HALF_W;
-  const LFX = cx - HALF_W - 14; // left fireman center x
-  const RFX = cx + HALF_W + 14; // right fireman center x
+  const LFX = cx - HALF_W - 14;
+  const RFX = cx + HALF_W + 14;
+  const PX = 4; // pixel grid size
+
   const headR = 7;
   const headY = GROUND_Y - 56;
   const shoulderY = headY + 14;
@@ -600,59 +611,75 @@ function drawFiremanNet(point, color, active = false) {
   context.save();
   context.strokeStyle = color;
   context.fillStyle = color;
-  context.lineCap = "round";
-  context.lineJoin = "round";
 
   for (const [fx, isLeft] of [[LFX, true], [RFX, false]]) {
-    // Head
-    context.lineWidth = 0;
-    context.beginPath();
-    context.arc(fx, headY, headR, 0, Math.PI * 2);
-    context.fill();
+    // Snap to grid
+    const gx = Math.round(fx / PX) * PX;
+    const gy_head = Math.round(headY / PX) * PX;
+    const gy_shoulder = Math.round(shoulderY / PX) * PX;
+    const gy_hip = Math.round(hipY / PX) * PX;
+    const gy_ground = Math.round(GROUND_Y / PX) * PX;
+
+    // Helmet brim (rectangle above head for fireman look)
+    const helmetW = headR * 2 + 4;
+    context.fillRect(gx - headR - 2, gy_head - headR - 6, helmetW, 4);
+    // Helmet top (slightly narrower)
+    context.fillRect(gx - headR + 1, gy_head - headR - 10, helmetW - 6, 6);
+
+    // Head (square pixel block)
+    const hSize = Math.round((headR * 2) / PX) * PX;
+    context.fillRect(
+      Math.round((gx - headR) / PX) * PX,
+      Math.round((headY - headR) / PX) * PX,
+      hSize, hSize
+    );
 
     context.lineWidth = active ? 4 : 3;
+    context.lineCap = "square";
+    context.lineJoin = "miter";
 
     // Torso
     context.beginPath();
-    context.moveTo(fx, headY + headR);
-    context.lineTo(fx, hipY);
+    context.moveTo(gx, gy_head + headR);
+    context.lineTo(gx, gy_hip);
     context.stroke();
 
-    // Arm toward net (raised, holding net)
-    const handX = isLeft ? leftX : rightX;
-    const elbowX = fx + (isLeft ? 14 : -14);
+    // Arm toward net
+    const handX = Math.round((isLeft ? leftX : rightX) / PX) * PX;
+    const elbowX = Math.round((gx + (isLeft ? 12 : -12)) / PX) * PX;
     context.beginPath();
-    context.moveTo(fx, shoulderY);
-    context.lineTo(elbowX, shoulderY - 6);
+    context.moveTo(gx, gy_shoulder);
+    context.lineTo(elbowX, gy_shoulder - 8);
     context.lineTo(handX, NET_TOP_Y);
     context.stroke();
 
-    // Other arm (at side)
+    // Other arm (at side, slightly raised — ready pose)
     const sideDir = isLeft ? -1 : 1;
     context.beginPath();
-    context.moveTo(fx, shoulderY);
-    context.lineTo(fx + sideDir * 12, shoulderY + 10);
-    context.lineTo(fx + sideDir * 18, shoulderY + 20);
+    context.moveTo(gx, gy_shoulder);
+    context.lineTo(gx + sideDir * 12, gy_shoulder + 8);
+    context.lineTo(gx + sideDir * 16, gy_shoulder + 18);
     context.stroke();
 
-    // Legs
+    // Legs (square-pixel stance)
     context.beginPath();
-    context.moveTo(fx, hipY);
-    context.lineTo(fx - 5, GROUND_Y - 12);
-    context.lineTo(fx - 4, GROUND_Y);
-    context.moveTo(fx, hipY);
-    context.lineTo(fx + 5, GROUND_Y - 12);
-    context.lineTo(fx + 4, GROUND_Y);
+    context.moveTo(gx, gy_hip);
+    context.lineTo(gx - 4, gy_ground - 12);
+    context.lineTo(gx - 4, gy_ground);
+    context.moveTo(gx, gy_hip);
+    context.lineTo(gx + 4, gy_ground - 12);
+    context.lineTo(gx + 4, gy_ground);
     context.stroke();
   }
 
-  // Net outline: sides from fireman hands to feet level, top arc
+  // Net outline
   context.lineWidth = active ? 5 : 3;
+  context.lineCap = "square";
   context.beginPath();
-  context.moveTo(LFX + 4, GROUND_Y);
-  context.lineTo(leftX, NET_TOP_Y);
+  context.moveTo(Math.round((LFX + 4) / PX) * PX, Math.round(GROUND_Y / PX) * PX);
+  context.lineTo(Math.round(leftX / PX) * PX, NET_TOP_Y);
   context.bezierCurveTo(leftX + 22, NET_TOP_Y + 16, rightX - 22, NET_TOP_Y + 16, rightX, NET_TOP_Y);
-  context.lineTo(RFX - 4, GROUND_Y);
+  context.lineTo(Math.round((RFX - 4) / PX) * PX, Math.round(GROUND_Y / PX) * PX);
   context.stroke();
 
   // Net mesh vertical lines
@@ -664,8 +691,8 @@ function drawFiremanNet(point, color, active = false) {
     const topY = NET_TOP_Y + 16 * Math.sin(t * Math.PI);
     const botX = (LFX + 4) + ((RFX - 4) - (LFX + 4)) * t;
     context.beginPath();
-    context.moveTo(topX, topY);
-    context.lineTo(botX, GROUND_Y);
+    context.moveTo(Math.round(topX / PX) * PX, Math.round(topY / PX) * PX);
+    context.lineTo(Math.round(botX / PX) * PX, Math.round(GROUND_Y / PX) * PX);
     context.stroke();
   }
 
