@@ -20,12 +20,23 @@
 }
 
 .fire-device__side {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0.25rem;
+  color: #121212;
+}
+
+/* top group in each side stretches to fill row 1 and aligns its own
+   content at the bottom so it stays close to the button */
+.fire-device__side-top {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 0.25rem;
-  color: #121212;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .fire-device__brand {
@@ -43,7 +54,6 @@
 }
 
 .fire-device__big-button {
-  margin-top: auto;
   width: clamp(74px, 8vw, 104px);
   aspect-ratio: 1;
   border-radius: 999px;
