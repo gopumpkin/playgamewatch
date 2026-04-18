@@ -1,0 +1,17 @@
+{
+  "name": "Game & Watch Collection",
+  "short_name": "G&W Collection",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1418",
+  "theme_color": "#0f1418",
+  "description": "Offline-friendly Game & Watch-inspired collection starting with Fire.",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

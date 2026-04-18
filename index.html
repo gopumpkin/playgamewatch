@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Game &amp; Watch Collection</title>
+    <meta
+      name="description"
+      content="A mobile-friendly offline-capable collection of Game & Watch-inspired games starting with Fire."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles/site.css" />
+  </head>
+  <body>
+    <header class="site-shell hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Game &amp; Watch Collection</p>
+        <h1>Portable, offline-friendly recreations built for desktop and touch.</h1>
+        <p class="hero__text">
+          Each game stays mostly self-contained while sharing responsive controls,
+          offline support, audio helpers, and local high score storage.
+        </p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="/games/fire/">Play Fire</a>
+          <a class="button" href="#roadmap">View roadmap</a>
+        </div>
+      </div>
+      <div class="hero__card">
+        <div class="mini-lcd">
+          <div class="mini-lcd__jumper mini-lcd__jumper--one"></div>
+          <div class="mini-lcd__jumper mini-lcd__jumper--two"></div>
+          <div class="mini-lcd__net"></div>
+        </div>
+        <p class="hero__caption">
+          Fire uses Silver-series rules with an optional wide presentation mode planned next.
+        </p>
+      </div>
+    </header>
+
+    <main class="site-shell">
+      <section class="panel">
+        <h2>Collection goals</h2>
+        <div class="feature-grid">
+          <article>
+            <h3>Self-contained games</h3>
+            <p>Plain HTML, CSS, and JavaScript pages with only minimal shared helpers.</p>
+          </article>
+          <article>
+            <h3>Cross-device controls</h3>
+            <p>Keyboard-first desktop play plus thumb-friendly controls on phones and tablets.</p>
+          </article>
+          <article>
+            <h3>Offline support</h3>
+            <p>A service worker caches the site shell and game files for repeat play.</p>
+          </article>
+          <article>
+            <h3>Authentic feel</h3>
+            <p>Discrete state gameplay, simple synthesized beeps, and local high scores.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Available now</h2>
+        <div class="game-card">
+          <div>
+            <p class="eyebrow">Game 01</p>
+            <h3>Fire</h3>
+            <p>
+              Catch jumpers on a four-position trampoline route and bounce them into the ambulance.
+            </p>
+            <ul class="inline-list">
+              <li>Game A / Game B</li>
+              <li>Keyboard + touch</li>
+              <li>Offline-ready</li>
+            </ul>
+          </div>
+          <a class="button button--primary" href="/games/fire/">Open Fire</a>
+        </div>
+      </section>
+
+      <section class="panel" id="roadmap">
+        <h2>Roadmap</h2>
+        <p>
+          Shared modules are in place so more Game &amp; Watch titles can reuse layout,
+          input, audio, storage, and offline support without forcing a large framework.
+        </p>
+      </section>
+    </main>
+
+    <script type="module">
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js");
+      }
+    </script>
+  </body>
+</html>

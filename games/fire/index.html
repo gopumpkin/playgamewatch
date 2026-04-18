@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Fire | Game &amp; Watch Collection</title>
+    <meta
+      name="description"
+      content="Play a mobile-friendly Fire recreation with Silver gameplay rules, keyboard controls, touch controls, and offline support."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles/site.css" />
+    <link rel="stylesheet" href="./fire.css" />
+  </head>
+  <body>
+    <header class="site-shell page-header">
+      <div>
+        <a class="page-header__link" href="/">&larr; Back to collection</a>
+        <p class="eyebrow">Game 01</p>
+        <h1>Fire</h1>
+      </div>
+      <p class="muted">Silver gameplay rules, responsive layout, keyboard + touch controls.</p>
+    </header>
+
+    <main class="site-shell stack">
+      <section class="panel stack">
+        <div class="hud-grid" aria-label="Game status">
+          <div class="hud-card">
+            <span class="hud-card__label">Score</span>
+            <span class="hud-card__value" id="score-value">0</span>
+          </div>
+          <div class="hud-card">
+            <span class="hud-card__label">Best</span>
+            <span class="hud-card__value" id="best-value">0</span>
+          </div>
+          <div class="hud-card">
+            <span class="hud-card__label">Misses</span>
+            <span class="hud-card__value" id="miss-value">0 / 3</span>
+          </div>
+          <div class="hud-card">
+            <span class="hud-card__label">Mode</span>
+            <span class="hud-card__value" id="mode-value">Ready</span>
+          </div>
+        </div>
+
+        <div class="fire-cabinet" id="cabinet">
+          <canvas
+            class="fire-screen"
+            id="fire-screen"
+            width="960"
+            height="600"
+            aria-label="Fire game display"
+          ></canvas>
+        </div>
+
+        <div class="info-bar">
+          <p class="muted" id="status-message">
+            Press <strong>1</strong> for Game A, <strong>2</strong> for Game B, use arrow keys or A/D.
+          </p>
+          <div class="action-row">
+            <button type="button" id="start-a" class="button--primary">Game A</button>
+            <button type="button" id="start-b">Game B</button>
+            <button type="button" id="pause-button">Pause</button>
+            <button type="button" id="skin-button">Skin: Silver</button>
+            <button type="button" id="sound-button">Sound: On</button>
+          </div>
+        </div>
+
+        <div class="touch-controls" id="touch-controls" aria-label="Touch controls"></div>
+      </section>
+
+      <section class="panel">
+        <h2>How this version works</h2>
+        <p>
+          This build follows the original Silver Fire idea of moving the rescue net across
+          four fixed positions. Each successful full rescue scores one point, three misses end
+          the run, and 200 / 500 points clear existing misses.
+        </p>
+        <p class="muted">
+          Modern additions are limited to responsive controls, local best score storage,
+          a Silver/Wide visual toggle, optional sound mute, and offline support.
+        </p>
+      </section>
+    </main>
+
+    <script type="module" src="./fire.js"></script>
+  </body>
+</html>
