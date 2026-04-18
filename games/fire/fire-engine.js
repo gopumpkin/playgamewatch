@@ -1,38 +1,45 @@
 export const FIRE_RULESET = Object.freeze({
   variant: "Wide Screen",
   version: "1981",
-  trampolinePositions: 3,
+  trampolinePositions: 4,
   maxMisses: 3,
   bonusResetScores: [200, 500],
   scoring: "One point per successful bounce on the rescue net.",
 });
 
+// Four discrete player positions. Catch segments only require positions 0-2;
+// position 3 (near the ambulance) has no required catch so standing there costs a life.
 export const FIRE_PLAYER_POSITIONS = [
-  { x: 282, y: 386 },
-  { x: 487, y: 366 },
-  { x: 678, y: 328 },
+  { x: 310, y: 432 },
+  { x: 467, y: 432 },
+  { x: 624, y: 432 },
+  { x: 782, y: 432 },
 ];
 
+// Two jump paths (upper and lower building windows).
+// Each path: window → air → three catch segments → ambulance.
+// Catch x values are aligned with FIRE_PLAYER_POSITIONS[0..2].
+// Catch y=390 aligns with the net top (player.y − 42 = 390).
 export const FIRE_PATHS = Object.freeze([
   [
-    { x: 170, y: 138, kind: "window", source: 0 },
-    { x: 222, y: 208, kind: "air" },
-    { x: 282, y: 286, kind: "catch", requiredPosition: 0, score: 1 },
-    { x: 364, y: 264, kind: "air" },
-    { x: 487, y: 286, kind: "catch", requiredPosition: 1, score: 1 },
-    { x: 592, y: 246, kind: "air" },
-    { x: 678, y: 250, kind: "catch", requiredPosition: 2, score: 1 },
-    { x: 822, y: 286, kind: "ambulance", saved: true },
+    { x: 208, y: 142, kind: "window", source: 0, pose: "window-high" },
+    { x: 258, y: 220, kind: "air", pose: "fall-left" },
+    { x: 310, y: 390, kind: "catch", requiredPosition: 0, score: 1, pose: "bounce-left" },
+    { x: 388, y: 302, kind: "air", pose: "rise-mid" },
+    { x: 467, y: 390, kind: "catch", requiredPosition: 1, score: 1, pose: "bounce-mid" },
+    { x: 545, y: 302, kind: "air", pose: "rise-right" },
+    { x: 624, y: 382, kind: "catch", requiredPosition: 2, score: 1, pose: "bounce-right" },
+    { x: 836, y: 390, kind: "ambulance", saved: true, pose: "ambulance" },
   ],
   [
-    { x: 170, y: 188, kind: "window", source: 1 },
-    { x: 234, y: 252, kind: "air" },
-    { x: 282, y: 304, kind: "catch", requiredPosition: 0, score: 1 },
-    { x: 394, y: 286, kind: "air" },
-    { x: 487, y: 306, kind: "catch", requiredPosition: 1, score: 1 },
-    { x: 604, y: 270, kind: "air" },
-    { x: 678, y: 272, kind: "catch", requiredPosition: 2, score: 1 },
-    { x: 822, y: 292, kind: "ambulance", saved: true },
+    { x: 208, y: 198, kind: "window", source: 1, pose: "window-low" },
+    { x: 258, y: 265, kind: "air", pose: "fall-left-low" },
+    { x: 310, y: 406, kind: "catch", requiredPosition: 0, score: 1, pose: "bounce-left-low" },
+    { x: 388, y: 315, kind: "air", pose: "rise-mid-low" },
+    { x: 467, y: 406, kind: "catch", requiredPosition: 1, score: 1, pose: "bounce-mid-low" },
+    { x: 545, y: 315, kind: "air", pose: "rise-right-low" },
+    { x: 624, y: 398, kind: "catch", requiredPosition: 2, score: 1, pose: "bounce-right-low" },
+    { x: 836, y: 406, kind: "ambulance", saved: true, pose: "ambulance" },
   ],
 ]);
 
@@ -42,16 +49,20 @@ function clampPosition(position) {
   return Math.min(MAX_POSITION, Math.max(0, position));
 }
 
-function getMaxActiveJumpers(mode) {
-  return mode === "B" ? 3 : 2;
+function getMaxActiveJumpers(mode, score) {
+  if (mode === "B") {
+    return score >= 40 ? 4 : 3;
+  }
+
+  return score >= 60 ? 3 : 2;
 }
 
 function getSpawnIntervalCycles(mode, score) {
   if (mode === "B") {
-    return Math.max(2, 5 - Math.floor(score / 45));
+    return Math.max(1, 5 - Math.floor(score / 20));
   }
 
-  return Math.max(3, 6 - Math.floor(score / 60));
+  return Math.max(2, 6 - Math.floor(score / 30));
 }
 
 function maybeResetMisses(score, misses, events) {
@@ -63,8 +74,16 @@ function maybeResetMisses(score, misses, events) {
   return misses;
 }
 
+function getSourceIndexForSpawn(state) {
+  if (state.mode === "A") {
+    return 0;
+  }
+
+  return state.nextSourceIndex;
+}
+
 function spawnJumper(state) {
-  const sourceIndex = state.nextSourceIndex;
+  const sourceIndex = getSourceIndexForSpawn(state);
   const beat = state.nextSpawnBeat;
 
   return {
@@ -79,7 +98,7 @@ function spawnJumper(state) {
       },
     ],
     nextJumperId: state.nextJumperId + 1,
-    nextSourceIndex: sourceIndex === 0 ? 1 : 0,
+    nextSourceIndex: state.mode === "B" ? (sourceIndex === 0 ? 1 : 0) : 0,
     nextSpawnBeat: beat === 1 ? 2 : 1,
   };
 }
@@ -90,7 +109,7 @@ function maybeSpawnJumper(state) {
   }
 
   const activeJumpers = state.jumpers.length;
-  const maxActive = getMaxActiveJumpers(state.mode);
+  const maxActive = getMaxActiveJumpers(state.mode, state.score);
   const spawnInterval = getSpawnIntervalCycles(state.mode, state.score);
 
   if (activeJumpers >= maxActive) {
@@ -119,18 +138,30 @@ export function createInitialFireState(bestScore = 0) {
     netPosition: 1,
     jumpers: [],
     ambulanceFlash: 0,
+    freezeTicks: 0,
     lastEvent: null,
   };
 }
 
 export function getTickDurationMs(state) {
   if (!state.mode) {
-    return 260;
+    return 300;
   }
 
-  const base = state.mode === "A" ? 255 : 215;
-  const acceleration = Math.min(85, Math.floor(state.score / 18) * 5);
-  return Math.max(state.mode === "A" ? 150 : 120, base - acceleration);
+  const base = state.mode === "A" ? 300 : 260;
+  const floor = state.mode === "A" ? 130 : 100;
+  const step = state.mode === "A" ? 10 : 8;
+  const acceleration = Math.min(base - floor, Math.floor(state.score / step) * 8);
+  return Math.max(floor, base - acceleration);
+}
+
+export function getDifficultyTier(state) {
+  const { score } = state;
+  if (score >= 150) return { tier: 5, label: "Blazing" };
+  if (score >= 100) return { tier: 4, label: "Very Fast" };
+  if (score >= 60) return { tier: 3, label: "Faster" };
+  if (score >= 30) return { tier: 2, label: "Fast" };
+  return { tier: 1, label: "Normal" };
 }
 
 export function getJumperSegment(jumper) {
@@ -192,6 +223,7 @@ export function reduceFireState(state, action) {
       let nextBest = state.bestScore;
       let nextStatus = state.status;
       let ambulanceFlash = state.ambulanceFlash > 0 ? state.ambulanceFlash - 1 : 0;
+      let freezeTicks = state.freezeTicks > 0 ? state.freezeTicks - 1 : 0;
       let nextJumpers = state.jumpers;
       let nextBeatPhase = state.beatPhase;
       let nextSpawnCycleCount = state.spawnCycleCount;
@@ -199,7 +231,9 @@ export function reduceFireState(state, action) {
       let nextSpawnBeat = state.nextSpawnBeat;
       let nextJumperId = state.nextJumperId;
 
-      if (state.beatPhase === 1 || state.beatPhase === 2) {
+      if (state.freezeTicks > 0) {
+        nextBeatPhase = state.beatPhase === 3 ? 1 : state.beatPhase + 1;
+      } else if (state.beatPhase === 1 || state.beatPhase === 2) {
         const activeBeat = state.beatPhase;
         const movedJumpers = [];
 
@@ -232,7 +266,11 @@ export function reduceFireState(state, action) {
             nextScore += nextSegment.score;
             nextBest = Math.max(nextBest, nextScore);
             events.push("bounce");
+            const previousMisses = nextMisses;
             nextMisses = maybeResetMisses(nextScore, nextMisses, events);
+            if (nextMisses !== previousMisses) {
+              freezeTicks = 4;
+            }
           }
 
           if (nextSegment.saved) {
@@ -259,11 +297,12 @@ export function reduceFireState(state, action) {
           status: nextStatus,
           beatPhase: state.beatPhase,
           spawnCycleCount: nextSpawnCycleCount,
-          jumpers: nextJumpers,
-          nextSourceIndex,
-          nextSpawnBeat,
-          nextJumperId,
-        });
+            jumpers: nextJumpers,
+            nextSourceIndex,
+            nextSpawnBeat,
+            nextJumperId,
+            freezeTicks,
+          });
 
         nextJumpers = spawnedState.jumpers;
         nextSourceIndex = spawnedState.nextSourceIndex;
@@ -290,6 +329,7 @@ export function reduceFireState(state, action) {
           nextSpawnBeat,
           jumpers: nextJumpers,
           ambulanceFlash,
+          freezeTicks,
           lastEvent: events.at(-1) ?? state.lastEvent,
         },
         events,

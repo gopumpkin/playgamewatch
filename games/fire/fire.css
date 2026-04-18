@@ -171,6 +171,152 @@
   margin-top: 0.25rem;
 }
 
+/* Mobile bottom controls bar (hidden by default, shown on narrow screens) */
+.game-controls-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  background: rgba(30, 36, 28, 0.94);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.game-controls-bar__move {
+  min-width: 72px;
+  min-height: 72px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  border: 3px solid #345a88;
+  background: radial-gradient(circle at 35% 35%, #e06060, #b02828 70%);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset -4px -6px 12px rgba(0, 0, 0, 0.28),
+    inset 3px 5px 10px rgba(255, 255, 255, 0.18);
+  touch-action: manipulation;
+}
+
+.game-controls-bar__move:active {
+  transform: scale(0.95);
+}
+
+.game-controls-bar__secondary {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.game-controls-bar__pill {
+  min-height: 40px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid #3a5e82;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dde5c8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+
+.game-controls-bar__pill:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* HUD bar (replaces hud-grid for this game) */
+.hud-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+}
+
+.hud-bar__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.hud-bar__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+}
+
+.hud-bar__value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-bar__sep {
+  width: 1px;
+  height: 1.4rem;
+  background: rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.hud-bar__lives {
+  gap: 0.2rem;
+  font-size: 1.2rem;
+}
+
+.hud-life {
+  color: #c83232;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.hud-life[data-lost="true"] {
+  opacity: 0.22;
+  transform: scale(0.82);
+}
+
+.hud-bar__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.hud-bar__actions button {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .hud-bar {
+    gap: 0.35rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .hud-bar__actions {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
 #cabinet[data-orientation="portrait"] {
   grid-template-columns: 1fr;
 }
@@ -222,6 +368,40 @@
   }
 }
 
+/* Mobile: strip the device chrome, show bottom controls bar */
+@media (max-width: 720px) {
+  .fire-device__side {
+    display: none;
+  }
+
+  .fire-device {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+    border-radius: 20px;
+  }
+
+  .fire-device__title,
+  .fire-device__footer {
+    font-size: 1.1rem;
+  }
+
+  .fire-device__screen-frame {
+    padding: 0.45rem;
+  }
+
+  .fire-device__screen-accent {
+    padding: 0.45rem;
+  }
+
+  .game-controls-bar {
+    display: flex !important;
+  }
+
+  .touch-controls {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .fire-device {
     padding: 0.85rem;
@@ -242,5 +422,25 @@
 
   .fire-device__direction {
     font-size: 1.05rem;
+  }
+}
+
+/* Landscape mobile: shift controls bar to the right */
+@media (max-height: 500px) and (orientation: landscape) {
+  .game-controls-bar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: auto;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) 8px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    height: 100dvh;
+  }
+
+  .game-controls-bar__secondary {
+    flex-direction: column;
   }
 }

@@ -23,36 +23,51 @@
         <p class="eyebrow">Game 01</p>
         <h1>Fire</h1>
       </div>
-      <p class="muted">Wide Screen gameplay rules, responsive layout, keyboard + touch controls.</p>
+      <p class="muted">Wide Screen-inspired rescue play, responsive layout, keyboard + touch controls.</p>
     </header>
 
     <main class="site-shell stack">
       <section class="panel stack">
-        <div class="hud-grid" aria-label="Game status">
-          <div class="hud-card">
-            <span class="hud-card__label">Score</span>
-            <span class="hud-card__value" id="score-value">0</span>
+
+        <!-- Compact HUD bar: score | best | lives | mode -->
+        <div class="hud-bar" aria-label="Game status">
+          <div class="hud-bar__item">
+            <span class="hud-bar__label">Score</span>
+            <span class="hud-bar__value" id="score-value">0</span>
           </div>
-          <div class="hud-card">
-            <span class="hud-card__label">Best</span>
-            <span class="hud-card__value" id="best-value">0</span>
+          <div class="hud-bar__sep" aria-hidden="true"></div>
+          <div class="hud-bar__item">
+            <span class="hud-bar__label">Best</span>
+            <span class="hud-bar__value" id="best-value">0</span>
           </div>
-          <div class="hud-card">
-            <span class="hud-card__label">Misses</span>
-            <span class="hud-card__value" id="miss-value">0 / 3</span>
+          <div class="hud-bar__sep" aria-hidden="true"></div>
+          <div class="hud-bar__item hud-bar__lives" aria-label="Lives remaining">
+            <span class="hud-life" id="hud-life-0" aria-hidden="true">♥</span>
+            <span class="hud-life" id="hud-life-1" aria-hidden="true">♥</span>
+            <span class="hud-life" id="hud-life-2" aria-hidden="true">♥</span>
           </div>
-          <div class="hud-card">
-            <span class="hud-card__label">Mode</span>
-            <span class="hud-card__value" id="mode-value">Ready</span>
+          <div class="hud-bar__sep" aria-hidden="true"></div>
+          <div class="hud-bar__item">
+            <span class="hud-bar__label">Mode</span>
+            <span class="hud-bar__value" id="mode-value">Ready</span>
+          </div>
+          <div class="hud-bar__actions">
+            <button type="button" id="pause-button">Pause</button>
+            <button type="button" id="skin-button">Skin: Wide</button>
           </div>
         </div>
+
+        <!-- Screen-reader-only status for accessibility -->
+        <p class="sr-only" id="status-message" aria-live="polite">
+          Press 1 for Game A, 2 for Game B, use arrow keys or A/D.
+        </p>
 
         <div class="fire-device" id="cabinet">
           <aside class="fire-device__side fire-device__side--left">
             <div class="fire-device__brand">
-              <span>PIXEL</span>
-              <span>WATCH</span>
-              <span>CLASSIC</span>
+              <span>LCD</span>
+              <span>RESCUE</span>
+              <span>GAME</span>
             </div>
             <button type="button" id="move-left-button" class="fire-device__big-button" aria-label="Move left"></button>
             <div class="fire-device__direction fire-device__direction--left">LEFT</div>
@@ -89,30 +104,19 @@
           </aside>
         </div>
 
-        <div class="info-bar fire-device__utility">
-          <p class="muted" id="status-message">
-            Press <strong>1</strong> for Game A, <strong>2</strong> for Game B, use arrow keys or A/D.
-          </p>
-          <div class="action-row">
-            <button type="button" id="pause-button">Pause</button>
-            <button type="button" id="skin-button">Skin: Silver</button>
+        <!-- Mobile bottom control bar (hidden on desktop) -->
+        <div class="game-controls-bar" id="game-controls-bar" aria-label="Game controls">
+          <button type="button" class="game-controls-bar__move" id="mobile-left" aria-label="Move left">&#9664;</button>
+          <div class="game-controls-bar__secondary">
+            <button type="button" id="mobile-start-a" class="game-controls-bar__pill">Game A</button>
+            <button type="button" id="mobile-start-b" class="game-controls-bar__pill">Game B</button>
+            <button type="button" id="mobile-pause" class="game-controls-bar__pill">Pause</button>
+            <button type="button" id="mobile-sound" class="game-controls-bar__pill">Sound</button>
           </div>
+          <button type="button" class="game-controls-bar__move" id="mobile-right" aria-label="Move right">&#9654;</button>
         </div>
 
         <div class="touch-controls" id="touch-controls" aria-label="Touch controls"></div>
-      </section>
-
-      <section class="panel">
-        <h2>How this version works</h2>
-        <p>
-          This build now follows the Wide Screen Fire rhythm more closely: three rescue
-          positions, alternating beat movement, overlapping jumpers, one point per bounce,
-          and miss recovery at 200 / 500 points.
-        </p>
-        <p class="muted">
-          Modern additions are limited to responsive controls, local best score storage,
-          a Silver/Wide visual toggle, optional sound mute, and offline support.
-        </p>
       </section>
     </main>
 
