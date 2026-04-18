@@ -147,6 +147,19 @@ function maybeSpawnJumper(state) {
     return state;
   }
 
+  // Safety stagger: two same-beat jumpers at segments 2 and 4 (both catch
+  // positions) arrive simultaneously — player can only be at one spot.
+  // Block spawn if any same-beat jumper is at a catch segment (2 or 4)
+  // that would collide with where the new jumper will be.
+  const newBeat = state.nextSpawnBeat;
+  const CATCH_SEGMENTS = new Set([2, 4]);
+  const wouldConflict = state.jumpers.some(
+    j => j.beat === newBeat && CATCH_SEGMENTS.has(j.segmentIndex)
+  );
+  if (wouldConflict) {
+    return state;
+  }
+
   return spawnJumper(state);
 }
 
