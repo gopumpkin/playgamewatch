@@ -425,22 +425,59 @@
   }
 }
 
-/* Landscape mobile: shift controls bar to the right */
+/* Landscape mobile: fullscreen canvas, controls bar on right */
 @media (max-height: 500px) and (orientation: landscape) {
+  .fire-device__side,
+  .fire-device__big-button,
+  .fire-device__title,
+  .fire-device__footer {
+    display: none !important;
+  }
+
+  .fire-device {
+    grid-template-columns: 1fr;
+    padding: 0.25rem;
+    border-radius: 12px;
+    margin-right: 80px; /* make room for controls bar */
+  }
+
+  .fire-device__screen-frame,
+  .fire-device__screen-accent {
+    padding: 0.3rem;
+  }
+
   .game-controls-bar {
+    display: flex !important;
     position: fixed;
     right: 0;
     top: 0;
     bottom: 0;
-    width: auto;
+    width: 80px;
     flex-direction: column;
     padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) 8px;
     border-top: none;
     border-left: 1px solid rgba(255, 255, 255, 0.12);
     height: 100dvh;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .game-controls-bar__move {
+    width: 60px;
+    height: 60px;
+    font-size: 1.6rem;
   }
 
   .game-controls-bar__secondary {
     flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .game-controls-bar__pill {
+    width: 100%;
+    font-size: 0.65rem;
+    padding: 6px 4px;
   }
 }

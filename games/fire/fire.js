@@ -333,6 +333,7 @@ function toggleSkin() {
 }
 
 function handleAction(action) {
+  void audio.resume();
   switch (action) {
     case "move-left":
       dispatch({ type: "MOVE_LEFT" });
@@ -888,7 +889,7 @@ function render() {
 }
 
 function frame(now) {
-  const delta = now - lastFrame;
+  const delta = Math.min(now - lastFrame, 100); // cap to avoid spiral-of-death after tab switches
   lastFrame = now;
   fireTick++;
 
@@ -938,6 +939,8 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+// Resume audio context on any touch — mobile browsers suspend it until user gesture
+document.addEventListener("touchstart", () => void audio.resume(), { once: false, passive: true });
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(new URL("../../sw.js", import.meta.url));
 }
