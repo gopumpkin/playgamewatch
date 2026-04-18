@@ -1,4 +1,4 @@
-import { mountTouchControls } from "../../shared/controls.js";
+import { mountTouchControls, attachHoldAction } from "../../shared/controls.js";
 import { createAudioEngine } from "../../shared/audio.js";
 import { getActionFromKey, createKeyboardController } from "../../shared/input.js";
 import { attachResponsiveLayout } from "../../shared/layout.js";
@@ -1085,10 +1085,10 @@ startBButton.addEventListener("click", () => { audio.resume(); startGame("B"); }
 pauseButton.addEventListener("click", () => { audio.resume(); dispatch({ type: "PAUSE_TOGGLE" }); });
 skinButton.addEventListener("click", toggleSkin);
 soundButton.addEventListener("click", () => { audio.resume(); toggleSound(); });
-moveLeftButton.addEventListener("click", () => handleAction("move-left"));
-moveRightButton.addEventListener("click", () => handleAction("move-right"));
-mobileLeft.addEventListener("click", () => handleAction("move-left"));
-mobileRight.addEventListener("click", () => handleAction("move-right"));
+attachHoldAction(moveLeftButton, () => handleAction("move-left"));
+attachHoldAction(moveRightButton, () => handleAction("move-right"));
+attachHoldAction(mobileLeft, () => handleAction("move-left"));
+attachHoldAction(mobileRight, () => handleAction("move-right"));
 mobileStartA.addEventListener("click", () => { audio.resume(); startGame("A"); });
 mobileStartB.addEventListener("click", () => { audio.resume(); startGame("B"); });
 mobilePause.addEventListener("click", () => { audio.resume(); dispatch({ type: "PAUSE_TOGGLE" }); });
