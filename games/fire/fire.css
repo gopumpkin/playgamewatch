@@ -146,6 +146,8 @@
 .fire-device__screen-frame {
   padding: clamp(0.9rem, 2vw, 1.25rem);
   border-radius: 26px;
+  position: relative;
+  overflow: hidden;
   /* Recessed bezel — darker than body, shaded top-left → bottom-right */
   background: linear-gradient(145deg, #d2caaa 0%, #c8c0a0 45%, #bfb796 100%);
   border: 4px solid #111;
@@ -158,14 +160,52 @@
     0 -1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* Glass glare: diagonal light streak across the screen bezel */
+.fire-device__screen-frame::before {
+  content: '';
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  width: 50%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 65%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .fire-device__screen-accent {
   padding: clamp(0.9rem, 1.7vw, 1.1rem);
   border-radius: 24px;
+  position: relative;
   background: linear-gradient(145deg, #3374c8, #2060a0 50%, #194e8a);
   box-shadow:
     inset 3px 4px 12px rgba(0, 0, 0, 0.55),
     inset -2px -2px 8px rgba(255, 255, 255, 0.07),
     inset 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+/* LCD pixel-grid overlay — sits on top of the canvas via z-index */
+.fire-device__screen-accent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  /* Fine 4 px grid mimics LCD sub-pixel boundaries */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.08) 0px, rgba(0, 0, 0, 0.08) 1px,
+      transparent 1px, transparent 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.06) 0px, rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px, transparent 4px
+    );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .fire-screen {
@@ -176,10 +216,13 @@
   border-radius: 16px;
   background: #d4d4d4;
   box-shadow:
+    /* Thick dark bezel ring */
     inset 0 0 0 6px #1a1a1a,
+    /* Screen-edge vignette — darkens corners like a real LCD */
     inset 0 0 40px rgba(0, 0, 0, 0.22),
-    /* Glare on screen glass */
-    inset 2px 2px 0 rgba(255, 255, 255, 0.12);
+    inset 0 0 90px rgba(0, 0, 0, 0.12),
+    /* Subtle top-left glass glare */
+    inset 3px 3px 0 rgba(255, 255, 255, 0.14);
 }
 
 .fire-device__button-stack {
@@ -314,7 +357,12 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* HUD bar (replaces hud-grid for this game) */
+/* ── Touch-controls: fully superseded by .game-controls-bar ──────────── */
+#touch-controls {
+  display: none;
+}
+
+/* ── HUD bar ─────────────────────────────────────────────────────────── */
 .hud-bar {
   display: flex;
   align-items: center;
