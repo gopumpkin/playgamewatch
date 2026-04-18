@@ -87,6 +87,105 @@ const LCD_PALETTES = {
   },
 };
 
+// ─── Pixel-art character sprites ──────────────────────────────────────────────
+// Each game pixel = SPRITE_PX × SPRITE_PX canvas pixels (chunky LCD feel).
+// Sprites defined as string rows; '.' = transparent.
+// Anchor row = the row that maps to y=0 in the pose coordinate system (hip level).
+const SPRITE_PX = 4;
+
+const _PC = {           // character colour palette
+  R: '#cc2000', r: '#ff5030', // red  — hat + shirt
+  S: '#e8a860', s: '#c07840', // skin — face + hands
+  B: '#1a35b0', b: '#0f1e70', // blue — overalls
+  W: '#f0ece0',               // white — eyes, teeth, buttons
+  N: '#221000',               // dark  — outline, pupils
+  O: '#9a5a28', o: '#5a3010', // brown — boots
+  Y: '#d8a020', y: '#a87010', // gold  — fireman helmet
+  G: '#1a7a34',               // green — fireman jacket
+};
+
+function _buildSprite(rows, anchorRow) {
+  const halfCols = (rows[0].length - 1) / 2;
+  const pixels = [];
+  for (let ri = 0; ri < rows.length; ri++) {
+    for (let ci = 0; ci < rows[ri].length; ci++) {
+      const key = rows[ri][ci];
+      if (key !== '.' && _PC[key]) {
+        pixels.push([(ci - halfCols) * SPRITE_PX, (ri - anchorRow) * SPRITE_PX, _PC[key]]);
+      }
+    }
+  }
+  return pixels;
+}
+
+// Standing in window — about to jump (7 cols × 15 rows, anchor=9 at waist)
+const _SPRITE_STAND = _buildSprite([
+  '.RRRRR.', // hat top
+  '.RRRRR.', // hat mid
+  'NRRRRRN', // hat brim
+  '.SSSSS.', // face
+  '.SNrNS.', // eyes + nose
+  '.SWWWS.', // smile
+  'rRRRRRr', // shirt
+  'rRRRRRr', // shirt lower
+  'BBBBBBB', // overalls top
+  'BWBBBWB', // waist + buttons  ← anchor (y=0)
+  'BBBBBBB', // hips
+  '.BB.BB.', // upper legs
+  '.BB.BB.', // mid legs
+  '.BB.BB.', // lower legs
+  'OOO.OOO', // boots
+], 9);
+
+// In-flight — arms spread wide (11 cols × 11 rows, anchor=3 at chest)
+const _SPRITE_AIR = _buildSprite([
+  '....RRRRR..', // hat (slightly right for dynamic tilt)
+  '...NRRRRRN.', // hat brim
+  '....SSSSS..', // face
+  '....SNrNS..', // eyes ← anchor (y=0, chest level)
+  'SS..SWWWS..', // left arm + smile
+  'sS.RRRRRR..', // shirt + left arm
+  'SSRRRRRRSS.', // shirt wide with arms
+  '...BBBBB...', // overalls
+  '...BWBBW...', // overalls + buttons
+  '....BB.B...', // legs
+  '..OOO..OO..', // boots
+], 3);
+
+// Fireman catcher — helmet, green jacket, arms will be drawn separately
+// 7 cols × 10 rows, anchor=4 at waist
+const _SPRITE_FIREMAN = _buildSprite([
+  '.YYYYY.', // helmet top
+  '.YYYYY.', // helmet mid
+  'NYYYYYN', // helmet brim
+  '.SSSSS.', // face
+  '.SN.NS.', // eyes (simple)
+  'GGGGGGG', // jacket
+  'GGGGGGG', // jacket lower
+  'BBBBBBB', // trousers
+  '.BB.BB.', // legs
+  'OOO.OOO', // boots
+], 4);
+
+// Map pose name → sprite pixel array
+const _POSE_SPRITE = {
+  'window-high':      _SPRITE_STAND,
+  'window-low':       _SPRITE_STAND,
+  'fall-left':        _SPRITE_AIR,
+  'fall-left-low':    _SPRITE_AIR,
+  'bounce-left':      _SPRITE_AIR,
+  'bounce-left-low':  _SPRITE_AIR,
+  'rise-mid':         _SPRITE_AIR,
+  'rise-mid-low':     _SPRITE_AIR,
+  'bounce-mid':       _SPRITE_AIR,
+  'bounce-mid-low':   _SPRITE_AIR,
+  'rise-right':       _SPRITE_AIR,
+  'rise-right-low':   _SPRITE_AIR,
+  'bounce-right':     _SPRITE_AIR,
+  'bounce-right-low': _SPRITE_AIR,
+  'ambulance':        _SPRITE_STAND,
+};
+
 const FIRE_LCD_POSES = {
   // In upper window: standing, arms forward, about to jump
   "window-high": {
@@ -371,30 +470,33 @@ function getPalette() {
 }
 
 function drawSegmentPose(x, y, poseName, color, scale = 1) {
-  const pose = FIRE_LCD_POSES[poseName];
-  if (!pose) {
+  const pixels = _POSE_SPRITE[poseName];
+  if (pixels) {
+    // Pixel-art path: snap anchor to grid, then draw each coloured pixel block
+    const ax = Math.round(x / SPRITE_PX) * SPRITE_PX;
+    const ay = Math.round(y / SPRITE_PX) * SPRITE_PX;
+    const sz = Math.max(1, Math.round(SPRITE_PX * scale));
+    for (const [dx, dy, col] of pixels) {
+      context.fillStyle = col;
+      context.fillRect(ax + Math.round(dx * scale), ay + Math.round(dy * scale), sz, sz);
+    }
     return;
   }
 
-  // Snap anchor to 4-px pixel grid for chunky LCD look
-  const PX = 4;
-  const ax = Math.round(x / PX) * PX;
-  const ay = Math.round(y / PX) * PX;
-
+  // Fallback: vector stick figure (for any unlisted pose name)
+  const pose = FIRE_LCD_POSES[poseName];
+  if (!pose) return;
+  const PX = SPRITE_PX;
+  const ax2 = Math.round(x / PX) * PX;
+  const ay2 = Math.round(y / PX) * PX;
   context.save();
-  context.translate(ax, ay);
+  context.translate(ax2, ay2);
   context.scale(scale, scale);
   context.fillStyle = color;
-  context.strokeStyle = color;
-
-  // Head: chunky filled square (retro Game Boy LCD pixel block)
   const [hx, hy, hr] = pose.head;
-  const hsx = Math.round((hx - hr) / PX) * PX;
-  const hsy = Math.round((hy - hr) / PX) * PX;
-  const hsz = Math.round((hr * 2) / PX) * PX;
-  context.fillRect(hsx, hsy, hsz, hsz);
-
-  // Body lines: thick, square-capped, coordinates snapped to grid
+  context.fillRect(Math.round((hx - hr) / PX) * PX, Math.round((hy - hr) / PX) * PX,
+    Math.round((hr * 2) / PX) * PX, Math.round((hr * 2) / PX) * PX);
+  context.strokeStyle = color;
   context.lineWidth = 5;
   context.lineCap = "square";
   context.lineJoin = "miter";
@@ -601,78 +703,39 @@ function drawFiremanNet(point, color, active = false) {
   const rightX = cx + HALF_W;
   const LFX = cx - HALF_W - 14;
   const RFX = cx + HALF_W + 14;
-  const PX = 4; // pixel grid size
+  const PX = SPRITE_PX;
 
-  const headR = 7;
   const headY = GROUND_Y - 56;
   const shoulderY = headY + 14;
   const hipY = headY + 30;
 
-  context.save();
-  context.strokeStyle = color;
-  context.fillStyle = color;
-
+  // Draw fireman bodies using pixel-art sprite (anchor at waist = hipY)
   for (const [fx, isLeft] of [[LFX, true], [RFX, false]]) {
-    // Snap to grid
-    const gx = Math.round(fx / PX) * PX;
-    const gy_head = Math.round(headY / PX) * PX;
-    const gy_shoulder = Math.round(shoulderY / PX) * PX;
-    const gy_hip = Math.round(hipY / PX) * PX;
-    const gy_ground = Math.round(GROUND_Y / PX) * PX;
+    const ax = Math.round(fx / PX) * PX;
+    const ay = Math.round(hipY / PX) * PX;
+    for (const [dx, dy, col] of _SPRITE_FIREMAN) {
+      context.fillStyle = col;
+      context.fillRect(ax + dx, ay + dy, PX, PX);
+    }
 
-    // Helmet brim (rectangle above head for fireman look)
-    const helmetW = headR * 2 + 4;
-    context.fillRect(gx - headR - 2, gy_head - headR - 6, helmetW, 4);
-    // Helmet top (slightly narrower)
-    context.fillRect(gx - headR + 1, gy_head - headR - 10, helmetW - 6, 6);
-
-    // Head (square pixel block)
-    const hSize = Math.round((headR * 2) / PX) * PX;
-    context.fillRect(
-      Math.round((gx - headR) / PX) * PX,
-      Math.round((headY - headR) / PX) * PX,
-      hSize, hSize
-    );
-
-    context.lineWidth = active ? 4 : 3;
+    // Arm reaching toward net — drawn over sprite so it connects dynamically
+    const handX = isLeft ? leftX : rightX;
+    const elbowX = fx + (isLeft ? 12 : -12);
+    context.save();
+    context.strokeStyle = _PC.G;  // green jacket arm
+    context.lineWidth = active ? 5 : 4;
     context.lineCap = "square";
-    context.lineJoin = "miter";
-
-    // Torso
     context.beginPath();
-    context.moveTo(gx, gy_head + headR);
-    context.lineTo(gx, gy_hip);
+    context.moveTo(Math.round(fx / PX) * PX, Math.round(shoulderY / PX) * PX);
+    context.lineTo(Math.round(elbowX / PX) * PX, Math.round((shoulderY - 8) / PX) * PX);
+    context.lineTo(Math.round(handX / PX) * PX, NET_TOP_Y);
     context.stroke();
-
-    // Arm toward net
-    const handX = Math.round((isLeft ? leftX : rightX) / PX) * PX;
-    const elbowX = Math.round((gx + (isLeft ? 12 : -12)) / PX) * PX;
-    context.beginPath();
-    context.moveTo(gx, gy_shoulder);
-    context.lineTo(elbowX, gy_shoulder - 8);
-    context.lineTo(handX, NET_TOP_Y);
-    context.stroke();
-
-    // Other arm (at side, slightly raised — ready pose)
-    const sideDir = isLeft ? -1 : 1;
-    context.beginPath();
-    context.moveTo(gx, gy_shoulder);
-    context.lineTo(gx + sideDir * 12, gy_shoulder + 8);
-    context.lineTo(gx + sideDir * 16, gy_shoulder + 18);
-    context.stroke();
-
-    // Legs (square-pixel stance)
-    context.beginPath();
-    context.moveTo(gx, gy_hip);
-    context.lineTo(gx - 4, gy_ground - 12);
-    context.lineTo(gx - 4, gy_ground);
-    context.moveTo(gx, gy_hip);
-    context.lineTo(gx + 4, gy_ground - 12);
-    context.lineTo(gx + 4, gy_ground);
-    context.stroke();
+    context.restore();
   }
 
   // Net outline
+  context.save();
+  context.strokeStyle = color;
   context.lineWidth = active ? 5 : 3;
   context.lineCap = "square";
   context.beginPath();
@@ -682,7 +745,7 @@ function drawFiremanNet(point, color, active = false) {
   context.lineTo(Math.round((RFX - 4) / PX) * PX, Math.round(GROUND_Y / PX) * PX);
   context.stroke();
 
-  // Net mesh vertical lines
+  // Net mesh
   context.lineWidth = active ? 3 : 2;
   const meshCount = 5;
   for (let i = 1; i < meshCount; i++) {
@@ -695,7 +758,6 @@ function drawFiremanNet(point, color, active = false) {
     context.lineTo(Math.round(botX / PX) * PX, Math.round(GROUND_Y / PX) * PX);
     context.stroke();
   }
-
   context.restore();
 }
 
