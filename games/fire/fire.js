@@ -5,8 +5,10 @@ import { attachResponsiveLayout } from "../../shared/layout.js";
 import { createStorageNamespace } from "../../shared/storage.js";
 import {
   FIRE_RULESET,
+  FIRE_PLAYER_POSITIONS,
   createInitialFireState,
   getTickDurationMs,
+  getJumperSegment,
   reduceFireState,
 } from "./fire-engine.js";
 
@@ -33,13 +35,6 @@ let skinMode = storage.get("fire-skin", "silver");
 let state = createInitialFireState(storage.get("fire-best-score", 0));
 let lastFrame = performance.now();
 let tickAccumulator = 0;
-
-const DISPLAY_POINTS = [
-  { x: 220, y: 310 },
-  { x: 390, y: 350 },
-  { x: 580, y: 320 },
-  { x: 760, y: 270 },
-];
 
 function setStatus(message) {
   statusMessage.innerHTML = message;
@@ -87,7 +82,7 @@ function updateHud() {
   }
 
   setStatus(
-    `Use arrow keys or A/D to move the trampoline across ${FIRE_RULESET.trampolinePositions} positions.`,
+    `Use arrow keys or A/D to move across ${FIRE_RULESET.trampolinePositions} rescue positions and catch every bounce.`,
   );
 }
 
@@ -118,7 +113,7 @@ function toggleSkin() {
   storage.set("fire-skin", skinMode);
   skinButton.textContent = `Skin: ${skinMode === "silver" ? "Silver" : "Wide"}`;
   setStatus(
-    `Using the <strong>${skinMode === "silver" ? "Silver" : "Wide"}</strong> visual skin with Silver gameplay rules.`,
+    `Using the <strong>${skinMode === "silver" ? "Silver" : "Wide"}</strong> visual skin with Wide Screen gameplay rules.`,
   );
 }
 
@@ -190,15 +185,21 @@ function drawBackground() {
   context.fillStyle = palette.building;
   context.fillRect(70, 110, 150, 250);
   context.fillRect(120, 84, 70, 26);
+  context.fillRect(130, 170, 60, 20);
 
   context.fillStyle = palette.accent;
   context.fillRect(94, 135, 16, 40);
   context.fillRect(132, 124, 16, 52);
   context.fillRect(172, 145, 16, 36);
+  context.fillRect(146, 170, 14, 26);
 
   context.fillStyle = palette.vehicle;
   context.fillRect(785, 335, 120, 72);
   context.fillRect(870, 320, 30, 38);
+  if (state.ambulanceFlash > 0) {
+    context.fillStyle = "#f5b94c";
+    context.fillRect(888, 306, 18, 18);
+  }
 
   context.strokeStyle = palette.line;
   context.lineWidth = 5;
@@ -208,14 +209,14 @@ function drawBackground() {
   context.stroke();
 
   context.fillStyle = "#4f6141";
-  for (let index = 0; index < DISPLAY_POINTS.length; index += 1) {
-    const point = DISPLAY_POINTS[index];
+  for (let index = 0; index < FIRE_PLAYER_POSITIONS.length; index += 1) {
+    const point = FIRE_PLAYER_POSITIONS[index];
     context.fillRect(point.x - 2, point.y + 22, 4, 70);
   }
 }
 
 function drawTrampoline() {
-  const point = DISPLAY_POINTS[state.netPosition];
+  const point = FIRE_PLAYER_POSITIONS[state.netPosition];
   context.strokeStyle = "#243022";
   context.lineWidth = 7;
   context.beginPath();
@@ -236,7 +237,7 @@ function drawJumpers() {
   context.fillStyle = "#243022";
   context.strokeStyle = "#243022";
   for (const jumper of state.jumpers) {
-    const point = DISPLAY_POINTS[jumper.stage];
+    const point = getJumperSegment(jumper);
     drawStickFigure(point.x, point.y);
   }
 }
@@ -275,8 +276,9 @@ function drawOverlay() {
 
   context.fillText(message, canvas.width / 2, 165);
   context.font = "500 18px Inter, system-ui, sans-serif";
-  context.fillText("Keyboard: A/D or arrow keys", canvas.width / 2, 205);
-  context.fillText("Touch: use the on-screen controls", canvas.width / 2, 235);
+  context.fillText("Wide Screen rules: 1 point per bounce", canvas.width / 2, 205);
+  context.fillText("Keyboard: A/D or arrow keys", canvas.width / 2, 235);
+  context.fillText("Touch: use the on-screen controls", canvas.width / 2, 265);
 }
 
 function render() {
@@ -330,7 +332,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js");
+  navigator.serviceWorker.register(new URL("../../sw.js", import.meta.url));
 }
 
 updateHud();
