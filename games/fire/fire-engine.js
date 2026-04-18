@@ -344,7 +344,7 @@ export function reduceFireState(state, action) {
           jumpers: nextJumpers,
           ambulanceFlash,
           freezeTicks,
-          lastEvent: events.at(-1) ?? state.lastEvent,
+          lastEvent: events[events.length - 1] ?? state.lastEvent,
         },
         events,
       };
