@@ -846,7 +846,7 @@ function drawOverlay() {
     context.fillText("Game A  —  Game B", cx, canvas.height / 2 + 10);
     context.font = "16px system-ui, sans-serif";
     context.globalAlpha = 0.6;
-    context.fillText("Arrow keys / A D  ·  Touch controls below", cx, canvas.height / 2 + 50);
+    context.fillText("Arrow keys / A D  ·  Touch controls", cx, canvas.height / 2 + 50);
     context.globalAlpha = 1;
   }
 
