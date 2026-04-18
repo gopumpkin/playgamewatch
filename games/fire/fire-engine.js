@@ -51,25 +51,25 @@ function clampPosition(position) {
 
 function getMaxActiveJumpers(mode, score) {
   if (mode === "B") {
-    if (score >= 80) return 5;
-    if (score >= 40) return 4;
+    if (score >= 60) return 5;
+    if (score >= 25) return 4;
     return 3;
   }
 
-  // Game A: starts forgiving, ramps up slowly
-  if (score >= 150) return 4;
-  if (score >= 80) return 3;
+  // Game A: starts with 2, ramps faster than before
+  if (score >= 100) return 4;
+  if (score >= 40) return 3;
   return 2;
 }
 
 function getSpawnIntervalCycles(mode, score) {
   if (mode === "B") {
-    // Game B: more intense, starts at interval 5, floors at 1
-    return Math.max(1, 5 - Math.floor(score / 20));
+    // Game B: intense, starts at 4, floors at 1
+    return Math.max(1, 4 - Math.floor(score / 20));
   }
 
-  // Game A: starts at interval 8, floors at 3 — gentler ramp
-  return Math.max(3, 8 - Math.floor(score / 25));
+  // Game A: starts at 6 (was 8), floors at 2 (was 3)
+  return Math.max(2, 6 - Math.floor(score / 20));
 }
 
 function maybeResetMisses(score, misses, events) {

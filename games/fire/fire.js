@@ -54,6 +54,8 @@ let tickAccumulator = 0;
 let fireTick = 0;
 let catchFlashFrames = 0;
 let missFlashFrames = 0;
+let scorePopups = [];   // [{x, y, alpha}]
+let smokeParticles = []; // [{x, y, r, alpha, vy, vx}]
 
 const GROUND_Y = 452;
 const NET_TOP_Y = 392;
@@ -306,6 +308,9 @@ function dispatch(action) {
   void playEvents(result.events);
   if (result.events.includes("bounce") || result.events.includes("save")) {
     catchFlashFrames = 8;
+    // Score pop-up above the net position where the catch happened
+    const pt = FIRE_PLAYER_POSITIONS[result.state.netPosition];
+    if (pt) spawnScorePopup(pt.x, NET_TOP_Y - 24);
   }
   if (result.events.includes("miss") || result.events.includes("gameover")) {
     missFlashFrames = 12;
@@ -316,10 +321,17 @@ function startGame(mode) {
   dispatch({ type: "START_GAME", mode });
 }
 
+function applySoundUI() {
+  soundButton.textContent = soundEnabled ? "🔊 Sound" : "🔇 Sound";
+  mobileSound.textContent = soundEnabled ? "🔊" : "🔇";
+  soundButton.classList.toggle("sound--off", !soundEnabled);
+  mobileSound.classList.toggle("sound--off", !soundEnabled);
+}
+
 function toggleSound() {
   soundEnabled = !soundEnabled;
   storage.set("sound-enabled", soundEnabled);
-  soundButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
+  applySoundUI();
 }
 
 function toggleSkin() {
@@ -660,11 +672,14 @@ function drawFiremanNet(point, color, active = false) {
   context.restore();
 }
 
+// Easing helpers for natural-feeling jumper movement
+function smoothstep(t) {
+  return t * t * (3 - 2 * t);
+}
+
 function getRenderedJumperPoint(jumper) {
   const currentSegment = getJumperSegment(jumper);
-  if (!currentSegment) {
-    return currentSegment;
-  }
+  if (!currentSegment) return currentSegment;
 
   if (state.status !== "running" || (state.beatPhase !== 1 && state.beatPhase !== 2)) {
     return currentSegment;
@@ -675,15 +690,27 @@ function getRenderedJumperPoint(jumper) {
   }
 
   const nextSegment = FIRE_PATHS[jumper.pathIndex][jumper.segmentIndex + 1];
-  if (!nextSegment) {
-    return currentSegment;
-  }
+  if (!nextSegment) return currentSegment;
 
-  const progress = Math.min(1, tickAccumulator / getTickDurationMs(state));
-  return {
-    x: currentSegment.x + (nextSegment.x - currentSegment.x) * progress,
-    y: currentSegment.y + (nextSegment.y - currentSegment.y) * progress,
-  };
+  const rawProgress = Math.min(1, tickAccumulator / getTickDurationMs(state));
+  // Smooth easing makes arcs feel physical rather than mechanical
+  const t = smoothstep(rawProgress);
+
+  const x = currentSegment.x + (nextSegment.x - currentSegment.x) * t;
+  const y = currentSegment.y + (nextSegment.y - currentSegment.y) * t;
+
+  // Add perpendicular arc: jump/bounce transitions get a natural parabolic lift
+  // sin(t*PI) peaks at 0.5; amplitude depends on transition direction
+  const dy = nextSegment.y - currentSegment.y;
+  const dx = Math.abs(nextSegment.x - currentSegment.x);
+  const isRising = dy < -30;      // significantly upward = bounce arc
+  const isFalling = dy > 30;      // significantly downward = fall arc
+  let arcY = 0;
+  if (isRising) arcY = -Math.min(dx * 0.28, 50) * Math.sin(rawProgress * Math.PI);
+  else if (isFalling) arcY = Math.min(dx * 0.12, 20) * Math.sin(rawProgress * Math.PI);
+
+  return { x, y: y + arcY, rawProgress };
+}
 }
 
 function drawBackground() {
@@ -728,8 +755,12 @@ function drawJumpers() {
   const palette = getPalette();
   for (const jumper of state.jumpers) {
     const point = getRenderedJumperPoint(jumper);
+    if (!point) continue;
     const segment = getJumperSegment(jumper);
-    drawSegmentPose(point.x, point.y, segment.pose, palette.segment);
+    // Squash & stretch: slightly taller at arc peak, squashed on landing
+    const rawP = point.rawProgress ?? 0;
+    const stretch = 1 + 0.14 * Math.sin(rawP * Math.PI);
+    drawSegmentPose(point.x, point.y, segment.pose, palette.segment, stretch);
   }
 }
 
@@ -744,6 +775,66 @@ function drawHeart(cx, cy, size, color, alpha) {
   context.closePath();
   context.fill();
   context.restore();
+}
+
+// --- Smoke particles emitted from burning building windows ---
+function updateSmoke() {
+  // Advance existing particles
+  for (const p of smokeParticles) {
+    p.y -= p.vy;
+    p.x += p.vx;
+    p.r += 0.35;
+    p.alpha *= 0.955;
+  }
+  smokeParticles = smokeParticles.filter(p => p.alpha > 0.02);
+
+  // Emit new puffs from building windows (only when game is active)
+  if (state.status === "running" && fireTick % 6 === 0 && smokeParticles.length < 28) {
+    // Approximate window positions on the building (x~185, alternating y)
+    const wy = Math.random() < 0.5 ? 130 : 200;
+    smokeParticles.push({
+      x: 188 + (Math.random() - 0.5) * 28,
+      y: wy,
+      r: 7 + Math.random() * 7,
+      alpha: 0.38,
+      vy: 0.7 + Math.random() * 0.9,
+      vx: (Math.random() - 0.5) * 0.5,
+    });
+  }
+}
+
+function drawSmoke() {
+  const palette = getPalette();
+  for (const p of smokeParticles) {
+    context.beginPath();
+    context.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    context.fillStyle = palette.structure;
+    context.globalAlpha = p.alpha;
+    context.fill();
+  }
+  context.globalAlpha = 1;
+}
+
+// --- Score pop-up "+1" floating text ---
+function spawnScorePopup(x, y) {
+  scorePopups.push({ x, y, alpha: 1.0 });
+}
+
+function drawScorePopups() {
+  if (scorePopups.length === 0) return;
+  const palette = getPalette();
+  context.font = "bold 24px monospace";
+  context.textAlign = "center";
+  for (const p of scorePopups) {
+    context.globalAlpha = p.alpha;
+    context.fillStyle = palette.accent;
+    context.fillText("+1", p.x, p.y);
+    p.y -= 1.8;
+    p.alpha -= 0.028;
+  }
+  scorePopups = scorePopups.filter(p => p.alpha > 0);
+  context.globalAlpha = 1;
+  context.textAlign = "left";
 }
 
 function drawHud() {
@@ -871,9 +962,12 @@ function drawFlashEffects() {
 }
 
 function render() {
+  updateSmoke();
   drawBackground();
+  drawSmoke();
   drawJumpers();
   drawTrampoline();
+  drawScorePopups();
   drawFlashEffects();
   drawHud();
   drawOverlay();
@@ -896,7 +990,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-soundButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
+applySoundUI();
 skinButton.textContent = `Skin: ${skinMode === "silver" ? "Silver" : "Wide"}`;
 startAButton.addEventListener("click", () => { audio.resume(); startGame("A"); });
 startBButton.addEventListener("click", () => { audio.resume(); startGame("B"); });
