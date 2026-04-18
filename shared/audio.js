@@ -10,7 +10,6 @@ const CUES = {
 export function createAudioEngine() {
   let ctx = null;
   let masterGain = null;
-  let unlocked = false;
 
   function getOrCreateContext() {
     if (ctx) return ctx;
@@ -25,56 +24,61 @@ export function createAudioEngine() {
 
   return {
     /**
-     * Call this synchronously inside every user-gesture handler (touchstart, click).
-     * It creates the AudioContext, plays a silent buffer (iOS unlock trick),
-     * and calls resume() — all synchronously so iOS recognises the gesture.
+     * Call this synchronously inside every user-gesture handler.
+     * Creates the AudioContext, plays a silent buffer (iOS unlock trick),
+     * and calls ctx.resume() — all within the same gesture event so iOS
+     * recognises it as a trusted interaction.
      */
     resume() {
       const c = getOrCreateContext();
       if (!c) return;
 
-      // Play a 1-sample silent buffer — this is the iOS WebAudio unlock trick.
-      // Must happen synchronously inside a user gesture.
-      if (!unlocked) {
-        try {
-          const buf = c.createBuffer(1, 1, c.sampleRate);
-          const src = c.createBufferSource();
-          src.buffer = buf;
-          src.connect(c.destination);
-          src.start(0);
-          unlocked = true;
-        } catch (_) {
-          // ignore — best effort
-        }
+      // ctx.resume() must be called first — iOS requires it before any audio
+      // node activity can unlock the context.
+      if (c.state === "suspended") {
+        c.resume().catch(() => {});
       }
 
-      if (c.state === "suspended") {
-        // Call resume() synchronously — do NOT await here so that iOS
-        // processes it within the same user-gesture event.
-        c.resume().catch(() => {});
+      // Silent 1-sample buffer: the canonical iOS WebAudio unlock trick.
+      // Playing any sound (even silence) within a user gesture marks the
+      // context as "user-activated" on WebKit.
+      try {
+        const buf = c.createBuffer(1, 1, c.sampleRate);
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        src.connect(c.destination);
+        src.start(0);
+      } catch (_) {
+        // best effort
       }
     },
 
     playCue(name) {
       const cue = CUES[name];
+      // ctx must exist (i.e., resume() must have been called from a gesture).
       if (!cue || !ctx || !masterGain) return;
 
-      // Do NOT call ctx.resume() here — we are inside the game loop, not a
-      // user gesture, so iOS would ignore it. If the context is still
-      // suspended the sound is silently skipped.
-      if (ctx.state !== "running") return;
-
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = cue.type;
-      oscillator.frequency.value = cue.frequency;
-      gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + cue.duration);
-      oscillator.connect(gain);
-      gain.connect(masterGain);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + cue.duration);
+      // KEY: do NOT gate on ctx.state === "running".
+      // ctx.resume() resolves asynchronously, so state may still read
+      // "suspended" for a few ms after the gesture. Web Audio will queue
+      // scheduled sounds while suspended and play them once the context
+      // actually starts running. This is standard spec behaviour and works
+      // on both iOS Safari and Chrome/Android.
+      try {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = cue.type;
+        oscillator.frequency.value = cue.frequency;
+        gain.gain.setValueAtTime(0.001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + cue.duration);
+        oscillator.connect(gain);
+        gain.connect(masterGain);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + cue.duration);
+      } catch (_) {
+        // Ignore — context may be in a transitional state
+      }
     },
   };
 }

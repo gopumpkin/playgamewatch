@@ -51,22 +51,25 @@ function clampPosition(position) {
 
 function getMaxActiveJumpers(mode, score) {
   if (mode === "B") {
-    if (score >= 60) return 5;
-    if (score >= 30) return 4;
+    if (score >= 80) return 5;
+    if (score >= 40) return 4;
     return 3;
   }
 
-  if (score >= 80) return 4;
-  if (score >= 40) return 3;
+  // Game A: starts forgiving, ramps up slowly
+  if (score >= 150) return 4;
+  if (score >= 80) return 3;
   return 2;
 }
 
 function getSpawnIntervalCycles(mode, score) {
   if (mode === "B") {
-    return Math.max(1, 4 - Math.floor(score / 15));
+    // Game B: more intense, starts at interval 5, floors at 1
+    return Math.max(1, 5 - Math.floor(score / 20));
   }
 
-  return Math.max(1, 5 - Math.floor(score / 20));
+  // Game A: starts at interval 8, floors at 3 — gentler ramp
+  return Math.max(3, 8 - Math.floor(score / 25));
 }
 
 function maybeResetMisses(score, misses, events) {
@@ -105,6 +108,8 @@ function spawnJumper(state) {
     nextJumperId: state.nextJumperId + 1,
     nextSourceIndex: state.mode === "B" ? (sourceIndex === 0 ? 1 : 0) : 0,
     nextSpawnBeat: beat === 1 ? 2 : 1,
+    // Randomise next spawn jitter: -1, 0, or +1 cycle
+    spawnJitter: Math.floor(Math.random() * 3) - 1,
   };
 }
 
@@ -115,7 +120,10 @@ function maybeSpawnJumper(state) {
 
   const activeJumpers = state.jumpers.length;
   const maxActive = getMaxActiveJumpers(state.mode, state.score);
-  const spawnInterval = getSpawnIntervalCycles(state.mode, state.score);
+  const baseInterval = getSpawnIntervalCycles(state.mode, state.score);
+  // Add ±1 jitter to the spawn interval for organic variety, but keep
+  // minimum interval of 2 so overlapping spawns don't pile up at the start.
+  const spawnInterval = Math.max(2, baseInterval + state.spawnJitter);
 
   if (activeJumpers >= maxActive) {
     return state;
@@ -145,6 +153,7 @@ export function createInitialFireState(bestScore = 0) {
     ambulanceFlash: 0,
     freezeTicks: 0,
     lastEvent: null,
+    spawnJitter: 0,
   };
 }
 
