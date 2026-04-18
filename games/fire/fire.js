@@ -259,13 +259,13 @@ function persistBestScore(nextState) {
   }
 }
 
-async function playEvents(events) {
+function playEvents(events) {
   if (!soundEnabled) {
     return;
   }
 
   for (const eventName of events) {
-    await audio.playCue(eventName);
+    audio.playCue(eventName);
   }
 }
 
@@ -313,7 +313,6 @@ function dispatch(action) {
 }
 
 function startGame(mode) {
-  void audio.resume();
   dispatch({ type: "START_GAME", mode });
 }
 
@@ -321,9 +320,6 @@ function toggleSound() {
   soundEnabled = !soundEnabled;
   storage.set("sound-enabled", soundEnabled);
   soundButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
-  if (soundEnabled) {
-    void audio.resume();
-  }
 }
 
 function toggleSkin() {
@@ -333,7 +329,7 @@ function toggleSkin() {
 }
 
 function handleAction(action) {
-  void audio.resume();
+  audio.resume();
   switch (action) {
     case "move-left":
       dispatch({ type: "MOVE_LEFT" });
@@ -342,10 +338,10 @@ function handleAction(action) {
       dispatch({ type: "MOVE_RIGHT" });
       break;
     case "start-a":
-      startGame("A");
+      audio.resume(); startGame("A");
       break;
     case "start-b":
-      startGame("B");
+      audio.resume(); startGame("B");
       break;
     case "pause-toggle":
       dispatch({ type: "PAUSE_TOGGLE" });
@@ -907,19 +903,19 @@ function frame(now) {
 
 soundButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
 skinButton.textContent = `Skin: ${skinMode === "silver" ? "Silver" : "Wide"}`;
-startAButton.addEventListener("click", () => startGame("A"));
-startBButton.addEventListener("click", () => startGame("B"));
-pauseButton.addEventListener("click", () => dispatch({ type: "PAUSE_TOGGLE" }));
+startAButton.addEventListener("click", () => { audio.resume(); startGame("A"); });
+startBButton.addEventListener("click", () => { audio.resume(); startGame("B"); });
+pauseButton.addEventListener("click", () => { audio.resume(); dispatch({ type: "PAUSE_TOGGLE" }); });
 skinButton.addEventListener("click", toggleSkin);
-soundButton.addEventListener("click", toggleSound);
+soundButton.addEventListener("click", () => { audio.resume(); toggleSound(); });
 moveLeftButton.addEventListener("click", () => handleAction("move-left"));
 moveRightButton.addEventListener("click", () => handleAction("move-right"));
 mobileLeft.addEventListener("click", () => handleAction("move-left"));
 mobileRight.addEventListener("click", () => handleAction("move-right"));
-mobileStartA.addEventListener("click", () => startGame("A"));
-mobileStartB.addEventListener("click", () => startGame("B"));
-mobilePause.addEventListener("click", () => dispatch({ type: "PAUSE_TOGGLE" }));
-mobileSound.addEventListener("click", toggleSound);
+mobileStartA.addEventListener("click", () => { audio.resume(); startGame("A"); });
+mobileStartB.addEventListener("click", () => { audio.resume(); startGame("B"); });
+mobilePause.addEventListener("click", () => { audio.resume(); dispatch({ type: "PAUSE_TOGGLE" }); });
+mobileSound.addEventListener("click", () => { audio.resume(); toggleSound(); });
 
 mountTouchControls(touchControls, {
   onLeft: () => handleAction("move-left"),
@@ -935,12 +931,13 @@ createKeyboardController(window, handleAction);
 
 window.addEventListener("keydown", (event) => {
   if (getActionFromKey(event.key)) {
-    void audio.resume();
+    audio.resume();
   }
 });
 
-// Resume audio context on any touch — mobile browsers suspend it until user gesture
-document.addEventListener("touchstart", () => void audio.resume(), { once: false, passive: true });
+// Resume audio context on any touch — mobile browsers suspend it until user gesture.
+// The silent buffer trick inside resume() is needed for iOS Safari.
+document.addEventListener("touchstart", () => audio.resume(), { passive: true });
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(new URL("../../sw.js", import.meta.url));
 }
